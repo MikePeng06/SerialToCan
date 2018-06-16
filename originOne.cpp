@@ -47,23 +47,6 @@ int set_interface_attribs(int fd, int speed)
     return 0;
 }
 
-void set_mincount(int fd, int mcount)
-{
-    struct termios tty;
-
-    if (tcgetattr(fd, &tty) < 0)
-    {
-        printf("Error tcgetattr: %s\n", strerror(errno));
-        return;
-    }
-
-    tty.c_cc[VMIN] = mcount ? 1 : 0;
-    tty.c_cc[VTIME] = 5; /* half second timer */
-
-    if (tcsetattr(fd, TCSANOW, &tty) < 0)
-        printf("Error tcsetattr: %s\n", strerror(errno));
-}
-
 void sendData(char *send, uint32_t ID, bool isRemote, int numOfData, uint8_t data[])
 {
 
