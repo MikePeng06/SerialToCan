@@ -47,9 +47,10 @@ int set_interface_attribs(int fd, int speed)
     return 0;
 }
 
-void sendData(char *send, uint32_t ID, bool isRemote, int numOfData, uint8_t data[])
+void sendData(int fd, uint32_t ID, bool isRemote, int numOfData, uint8_t data[])
 {
-
+    int buf_length = 9 + numOfData;
+    char send[buf_length];
     uint32_t temp;
     int remote_mode = 6;
     int data_mode = 4;
@@ -83,6 +84,13 @@ void sendData(char *send, uint32_t ID, bool isRemote, int numOfData, uint8_t dat
     }
     send[index] = '\r';
     send[index + 1] = '\n';
+
+    int numOfChar = sizeof(send);
+    int wlen = write(fd, send, numOfChar);
+    if (wlen != numOfChar)
+    {
+        printf("Error from write: %d, %d\n", wlen, errno);
+    }
 }
 
 void send_thread(int fd)
@@ -94,17 +102,9 @@ void send_thread(int fd)
         int rdlen;
         uint32_t testID = 0b01010101010101010101010101010;
         uint8_t test_data[] = {0b1, 0b110, 0b111};
-        char send_str[12];
 
-        sendData(send_str, testID, false, 3, test_data);
-
-        int numOfChar = sizeof(send_str);
-        int wlen = write(fd, send_str, numOfChar);
-        if (wlen != numOfChar)
-        {
-            printf("Error from write: %d, %d\n", wlen, errno);
-        }
-        usleep(500000);//millisecond
+        sendData(fd, testID, false, 3, test_data);
+        usleep(500000); //millisecond
     } while (1);
 }
 
@@ -154,7 +154,7 @@ int main()
 
     std::thread task1(send_thread, fd);
     std::thread task2(receive_thread, fd);
-    
+
     task1.join();
     task2.join();
 }
