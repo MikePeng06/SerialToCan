@@ -121,7 +121,7 @@ void send_thread(int fd)
         {
             printf("Error from write: %d, %d\n", wlen, errno);
         }
-        usleep(500000);
+        usleep(500000);//millisecond
     } while (1);
 }
 
