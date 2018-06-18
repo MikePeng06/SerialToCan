@@ -8,6 +8,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <thread>
+#include "Data_queue.h"
 using namespace std;
 
 int set_interface_attribs(int fd, int speed)
@@ -49,6 +50,7 @@ int set_interface_attribs(int fd, int speed)
 
 void sendData(int fd, uint32_t ID, bool isRemote, int numOfData, uint8_t data[])
 {
+
     int buf_length = 9 + numOfData;
     char send[buf_length];
     uint32_t temp;
@@ -93,6 +95,20 @@ void sendData(int fd, uint32_t ID, bool isRemote, int numOfData, uint8_t data[])
     }
 }
 
+void get_data(char buf[], int *received_data)
+{
+
+    // uint32_t temp;
+    // temp = (buf[2]<<24 | buf[3] <<16 | buf[4] << 8 | buf[5]);
+    // uint32_t ID = (uint32_t)(temp >> 3);
+    uint numOfData = (uint)(buf[6]);
+    received_data[numOfData];
+    for (int i = 0; i < numOfData; i++)
+    {
+        received_data[i] = buf[7 + i];
+    }
+}
+
 void send_thread(int fd)
 {
     do
@@ -101,9 +117,9 @@ void send_thread(int fd)
 
         int rdlen;
         uint32_t testID = 0b01010101010101010101010101010;
-        uint8_t test_data[] = {0b1, 0b110, 0b111};
+        uint8_t test_data[] = {0b101, 0b110, 0b101, 0b1101};
 
-        sendData(fd, testID, false, 3, test_data);
+        sendData(fd, testID, false, 4, test_data);
         usleep(500000); //millisecond
     } while (1);
 }
@@ -112,9 +128,21 @@ void receive_thread(int fd)
 {
     do
     {
-        char buf[100];
-        int rdlen = read(fd, buf, sizeof(buf) - 1); //\0
-        if (rdlen > 0)
+        char buf_read[100];                               //the buffer for each segmented read
+        Data_Queue buf;                                  
+        char received_data[100];                          //buffer for each completed read
+        int numOfData;
+        int rdlen = read(fd, buf_read, sizeof(buf_read) - 1); //\0
+
+        int templength = rdlen;
+        cout << templength;
+        for (char *p = buf_read; templength-- > 0; p++)
+        {
+            buf.insert(*p);
+        }
+
+        bool printData = buf.getData(received_data, numOfData);
+        if (printData)
         {
 #ifdef DISPLAY_STRING
             buf[rdlen] = 0;
@@ -122,16 +150,23 @@ void receive_thread(int fd)
 #else /* display hex */
             char *p;
             printf("Read %d:", rdlen);
-            for (p = buf; rdlen-- > 0; p++)
+            for (p = received_data; numOfData-- > 0; p++)
                 printf(" 0x%x", *p);
             printf("\n");
+            // get_data(buf,receivedData);
+            // int numofdata = sizeof(receivedData);
+            // for(int i = 0 ; i < numofdata; i++){
+            //     printf(" 0x%x", receivedData[i]);
+            // }
+            // printf("\n");
+
 #endif
         }
         else if (rdlen < 0)
         {
             printf("Error from read: %d: %s\n", rdlen, strerror(errno));
         }
-        usleep(500000);
+
     } while (1);
     /* repeat read to get full message */
 }
