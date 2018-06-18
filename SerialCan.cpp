@@ -210,7 +210,6 @@ void SerialCan::readThdFunc()
         }
 
         bool popedMsg;
-
         do
         {
             popedMsg = false;
@@ -249,6 +248,50 @@ void SerialCan::readThdFunc()
                     {
                         //seems received something
                         //TODO:
+
+                        unsigned char msgBody[13];
+                        unsigned int msgBodyPos = (ATseekPos + 2) % BUFFER_SIZE;
+                        if (EOLseekPos < msgBodyPos)
+                        {
+                            memcpy(msgBody, &buf[msgBodyPos], BUFFER_SIZE - msgBodyPos);
+                            memcpy(&msgBody[BUFFER_SIZE - msgBodyPos], buf, EOLseekPos);
+                        }
+                        else
+                        {
+                            memcpy(msgBody, &buf[msgBodyPos], EOLseekPos - msgBodyPos);
+                        }
+
+                        bool extended = msgBody[3] & EXTENTED_MASK;
+                        bool remote = msgBody[3] & REMOTE_MASK;
+
+                        uint32_t id = 0;
+
+                        if (extended)
+                        {
+                            id |= msgBody[0] << 21;
+                            id |= msgBody[1] << 13;
+                            id |= msgBody[2] << 5;
+                            id |= msgBody[3] >> 3;
+                        }
+                        else
+                        {
+                            id |= msgBody[0] << 3;
+                            id |= msgBody[1] >> 5;
+                        }
+
+                        uint8_t numBytes = 0;
+
+                        if (remote)
+                        {
+                            numBytes = 0;
+                        }
+                        else
+                        {
+                            numBytes |= msgBody[4];
+                        }
+
+                        receiveCB(id, extended, remote, numBytes, &msgBody[5]);
+
                         foundAT = false;
                         startPos = ATseekPos = EOLseekPos;
                         popedMsg = true;
