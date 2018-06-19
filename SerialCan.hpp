@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <thread>
 
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 128
 
 //masks for the 6th byte
 #define EXTENTED_MASK 0b100

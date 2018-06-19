@@ -149,6 +149,15 @@ bool SerialCan::sendCanMsg(uint32_t id,
         msgSize = 9 + numBytes;
     }
 
+    printf("sent: ");
+    for (int i = 0;; i++)
+    {
+        printf("%x ", msg[i]);
+        if (msg[i] == '\n')
+            break;
+    }
+    printf("\n");
+
     int wlen = write(fd, msg, msgSize);
     if (wlen != msgSize)
     {
@@ -166,19 +175,24 @@ SerialCan::~SerialCan()
     close(fd);
 };
 
-SerialCan::SerialCan(int fd)
-    : fd(fd),
-      readThd(NULL)
-{
-    memset(buf, 0, sizeof(buf));
-};
-
 void SerialCan::receiveCB(uint32_t id,
                           bool extended,
                           bool remote,
                           uint8_t numBytes,
-                          const uint8_t data[]){
+                          const uint8_t data[])
+{
+    printf("received id: %d, %s, %s, number of data: %d\n",
+           id,
+           (extended) ? "extended" : "standard",
+           (remote) ? "remote" : "data",
+           numBytes);
 
+    printf("data:");
+    for (int i = 0; i < numBytes; i++)
+    {
+        printf(" %x", data[i]);
+    }
+    printf("\n");
 };
 
 void SerialCan::readThdFunc()
@@ -225,6 +239,7 @@ void SerialCan::readThdFunc()
                             //found AT
                             foundAT = true;
                             EOLseekPos = (ATseekPos + 2) % BUFFER_SIZE;
+                            break;
                         }
                         else if ((ATseekPos + 1) % BUFFER_SIZE == endPos)
                         {
@@ -291,10 +306,12 @@ void SerialCan::readThdFunc()
                         }
 
                         receiveCB(id, extended, remote, numBytes, &msgBody[5]);
+                        printf("startpos: %d\n", startPos);
 
                         foundAT = false;
                         startPos = ATseekPos = EOLseekPos;
                         popedMsg = true;
+                        break;
                     }
 
                     //end of line not here
