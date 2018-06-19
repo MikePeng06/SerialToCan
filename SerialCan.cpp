@@ -57,17 +57,27 @@ SerialCan *createSerialCom(std::string path,
             return NULL;
         }
 
-        return new SerialCan(fd);
+        //configure to AT+AT mode
+
+        return new SerialCan(fd, tty);
     }
 };
 
-SerialCan::SerialCan(int fd)
+SerialCan::SerialCan(int fd, termios tty)
     : fd(fd),
+      tty(tty),
       startPos(0),
       endPos(0),
       shouldRead(false)
 {
     memset(buf, 0, sizeof(buf));
+    do
+    {
+
+        sendStr("AT+AT\r\n");
+
+    } while (!waitWord("OK", 100));
+    printf("AT+AT received OK\n");
 };
 
 bool SerialCan::startReadThd()
@@ -262,7 +272,6 @@ void SerialCan::readThdFunc()
                         buf[EOLseekPos] == '\r')
                     {
                         //seems received something
-                        //TODO:
 
                         unsigned char msgBody[13];
                         unsigned int msgBodyPos = (ATseekPos + 2) % BUFFER_SIZE;
@@ -320,4 +329,35 @@ void SerialCan::readThdFunc()
             }
         } while (popedMsg);
     }
+};
+
+bool SerialCan::waitWord(const char *word, size_t waitNumChar)
+{
+
+    const char *temp = word;
+    while (*temp != 0 && waitNumChar > 0)
+    {
+        char readChar;
+        read(fd, &readChar, 1);
+        if (readChar == *temp)
+        {
+            temp++;
+            if (*temp == 0)
+            {
+                //whole word received
+                return true;
+            }
+        }
+        else
+        {
+            temp = word;
+        }
+        waitNumChar--;
+    }
+    return false;
+};
+
+bool SerialCan::sendStr(const char *word)
+{
+    return (write(fd, word, strlen(word)) == strlen(word));
 };

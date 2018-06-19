@@ -30,7 +30,7 @@ public:
   ~SerialCan();
 
 private:
-  SerialCan(int fd);
+  SerialCan(int fd, termios tty);
 
   void receiveCB(uint32_t id,
                  bool extended,
@@ -39,8 +39,13 @@ private:
                  const uint8_t data[]);
 
   void readThdFunc();
-  const int fd;
 
+  bool sendStr(const char *word);
+
+  bool waitWord(const char *word, size_t waitNumChar);
+
+  const int fd;
+  termios tty;
   //queue related
   unsigned char buf[BUFFER_SIZE];
   unsigned int startPos = 0;
