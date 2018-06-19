@@ -28,7 +28,8 @@ int main(int argc, char **argv)
     }
     while (1)
     {
-        comObj->sendCanMsg(1234, false, true, 0, 0);
+        char data[8] = {1, 2, 3, 4, 5, 6, 7, 8};
+        comObj->sendCanMsg(1234, true, false, 8, (uint8_t *)data);
         sleep(1);
     }
 }
